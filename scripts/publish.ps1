@@ -7,6 +7,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Сначала выполните gh auth logi
 $owner = (& $Gh api user --jq .login).Trim()
 if ($owner -ne 'miramour') { throw "Ожидался аккаунт miramour, выполнен вход как $owner. Проверьте аккаунт перед публикацией." }
 $dirty = git status --porcelain
+if ($LASTEXITCODE -ne 0) { throw 'Git не может прочитать репозиторий. Исправьте ошибку Git перед публикацией.' }
 if ($dirty) { throw 'Перед публикацией нужен чистый, закоммиченный рабочий каталог.' }
 $remote = $null
 if ((git remote) -contains 'origin') { $remote = git remote get-url origin }
