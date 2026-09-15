@@ -24,7 +24,7 @@ jobs:
       # Hosted runners have no physical sound device. Audio E2E runs locally;
       # unit tests and executable packaging are reproducible here.
       - run: npm run package
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: CueForge-Windows-x64
           path: release/CueForge-*-Windows-x64.exe
