@@ -1,0 +1,31 @@
+name: Windows build and tests
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run setup:audio
+      - run: npm test
+      - run: npm run build
+      # Hosted runners have no physical sound device. Audio E2E runs locally;
+      # unit tests and executable packaging are reproducible here.
+      - run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CueForge-Windows-x64
+          path: release/CueForge-*-Windows-x64.exe
+          if-no-files-found: error
