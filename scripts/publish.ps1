@@ -13,7 +13,7 @@ $remote = $null
 if ((git remote) -contains 'origin') { $remote = git remote get-url origin }
 if (!$remote) {
   & $Gh repo create 'miramour/cueforge-desktop' --public --source $projectRoot --remote origin --push --description 'Open-source Windows performance soundboard: pads, MIDI, hotkeys, cue output and WAV recording.'
-  if ($LASTEXITCODE -ne 0) { throw 'Репозиторий не создан. Существующие репозитории не изменялись автоматически.' }
+  if ($LASTEXITCODE -ne 0) { throw 'Создание репозитория или отправка исходников не завершены. Проверьте origin и сообщение GitHub перед повтором.' }
 } elseif ($remote -eq 'https://github.com/miramour/cueforge-desktop.git' -or $remote -eq 'git@github.com:miramour/cueforge-desktop.git') {
   git push origin main
   if ($LASTEXITCODE -ne 0) { throw 'Не удалось отправить main. Force push не выполнялся.' }
