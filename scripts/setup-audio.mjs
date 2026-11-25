@@ -9,7 +9,7 @@ if (process.platform !== 'win32' || process.arch !== 'x64')
   throw new Error('This distribution targets Windows x64.');
 const version = '9.0.1',
   sha256 = 'fec81ae03971d9dd4be3ebe02e263bd2ec1d789483f931bdba5f5715e65da2e9';
-const url = `https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-${version}-essentials_build.zip`;
+const url = `https://github.com/GyanD/codexffmpeg/releases/download/${version}/ffmpeg-${version}-essentials_build.zip`;
 const vendor = path.resolve('vendor/ffmpeg');
 if (fs.existsSync(path.join(vendor, 'bin/ffmpeg.exe'))) {
   const hash = createHash('sha256');
@@ -24,7 +24,7 @@ if (fs.existsSync(path.join(vendor, 'bin/ffmpeg.exe'))) {
 }
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'cueforge-ffmpeg-')),
   archive = path.join(temp, 'ffmpeg.zip');
-console.log(`Downloading FFmpeg ${version} from gyan.dev…`);
+console.log(`Downloading FFmpeg ${version} from the Gyan release…`);
 const response = await fetch(url);
 if (!response.ok || !response.body) throw new Error(`Download failed: HTTP ${response.status}`);
 await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(archive));

@@ -17,7 +17,7 @@ The dependency lockfile records exact JavaScript versions.
 
 ## FFmpeg source and build information
 
-- Exact binary archive: https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.1-essentials_build.zip
+- Exact binary archive: https://github.com/GyanD/codexffmpeg/releases/download/9.0.1/ffmpeg-9.0.1-essentials_build.zip
 - Archive SHA-256: fec81ae03971d9dd4be3ebe02e263bd2ec1d789483f931bdba5f5715e65da2e9
 - FFmpeg source commit: https://github.com/FFmpeg/FFmpeg/commit/bf1b838f2a
 - Source release: https://ffmpeg.org/releases/ffmpeg-9.0.1.tar.xz
