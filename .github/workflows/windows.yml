@@ -29,3 +29,32 @@ jobs:
           name: CueForge-Windows-x64
           path: release/CueForge-*-Windows-x64.exe
           if-no-files-found: error
+  publish:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: windows
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: CueForge-Windows-x64
+          path: release
+      - name: Package demo and publish tested application
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content -Raw package.json | ConvertFrom-Json).version
+          $tag = "v$version"
+          $exe = "release/CueForge-$version-Windows-x64.exe"
+          node scripts/demo.mjs
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Compress-Archive -Path demo/* -DestinationPath release/CueForge-demo.zip
+          $assets = @($exe, 'release/CueForge-demo.zip')
+          $assets | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_).Hash.ToLowerInvariant(), (Split-Path -Leaf $_) } | Set-Content -Encoding ascii release/SHA256SUMS.txt
+          gh release create $tag @assets release/SHA256SUMS.txt --target $env:GITHUB_SHA --latest --title "CueForge Desktop $version" --notes-file docs/RELEASE_NOTES.md
