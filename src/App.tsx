@@ -49,6 +49,10 @@ import { MidiController, sameMidi } from './midi';
 import {
   COLORS,
   GRIDS,
+  BANK_SIZE,
+  MAX_GRID_SIDE,
+  PROJECT_CAPACITY,
+  validGridSize,
   freshProject,
   newPad,
   time,
@@ -301,6 +305,53 @@ function Toggle({
   );
 }
 
+function CustomGrid({
+  grid,
+  apply,
+}: {
+  grid: [number, number];
+  apply: (grid: [number, number]) => void;
+}) {
+  const [columns, setColumns] = useState(String(grid[0]));
+  const [rows, setRows] = useState(String(grid[1]));
+  const valid = validGridSize(Number(columns)) && validGridSize(Number(rows));
+  return (
+    <form
+      className="custom-grid"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (valid) apply([Number(columns), Number(rows)]);
+      }}
+    >
+      <label>
+        Столбцы
+        <input
+          type="number"
+          min={1}
+          max={MAX_GRID_SIDE}
+          required
+          value={columns}
+          onChange={(e) => setColumns(e.target.value)}
+        />
+      </label>
+      <label>
+        Строки
+        <input
+          type="number"
+          min={1}
+          max={MAX_GRID_SIDE}
+          required
+          value={rows}
+          onChange={(e) => setRows(e.target.value)}
+        />
+      </label>
+      <button disabled={!valid} type="submit">
+        Применить сетку
+      </button>
+      <small>От 1 до {MAX_GRID_SIDE} по каждой стороне</small>
+    </form>
+  );
+}
 export function App() {
   const [p, setP] = useState<Project>(freshProject),
     [ready, setReady] = useState(false),
@@ -319,7 +370,7 @@ export function App() {
     [midiLearn, setMidiLearn] = useState<string | null>(null),
     [midiLog, setMidiLog] = useState<string[]>([]),
     [confirmClear, setConfirmClear] = useState(false),
-    [version, setVersion] = useState('0.1.0'),
+    [version, setVersion] = useState(''),
     [busy, setBusy] = useState(false),
     [update, setUpdate] = useState<string | null>(null);
   const engineRef = useRef<AudioEngine | null>(null),
@@ -618,9 +669,13 @@ export function App() {
       const banks = current.current.banks.map((b) => ({ ...b, pads: [...b.pads] }));
       let index = startIndex ?? banks[bank].pads.findIndex((a) => !a);
       for (const file of files) {
-        while (index < 32 && banks[bank].pads[index] && !(used === 0 && startIndex !== undefined))
+        while (
+          index < BANK_SIZE &&
+          banks[bank].pads[index] &&
+          !(used === 0 && startIndex !== undefined)
+        )
           index++;
-        if (index < 0 || index >= 32) break;
+        if (index < 0 || index >= BANK_SIZE) break;
         const prev = banks[bank].pads[index];
         if (prev) engine().stop(prev.id);
         const pad = newPad(file, index);
@@ -966,7 +1021,7 @@ export function App() {
           <div
             className="pad-grid"
             style={{
-              gridTemplateColumns: `repeat(${p.settings.grid[0]}, minmax(0, 1fr))`,
+              gridTemplateColumns: `repeat(${p.settings.grid[0]}, minmax(95px, 1fr))`,
               gridTemplateRows: `repeat(${p.settings.grid[1]}, minmax(105px, 1fr))`,
             }}
           >
@@ -1015,7 +1070,7 @@ export function App() {
                             from.bank < 0 ||
                             from.bank > 7 ||
                             from.index < 0 ||
-                            from.index > 31
+                            from.index >= BANK_SIZE
                           )
                             return;
                           setP((old) => {
@@ -1183,7 +1238,7 @@ export function App() {
             .slice(p.settings.grid[0] * p.settings.grid[1])
             .some(Boolean) && (
             <div className="hidden-hint">
-              В банке есть пэды за пределами сетки. Выберите сетку 8 × 4 для просмотра всех.
+              В банке есть пэды за пределами сетки. Увеличьте размер сетки в настройках.
             </div>
           )}
         </div>
@@ -1202,6 +1257,30 @@ export function App() {
           <span className="play-time">
             {time(position)} <span>/ {time(sel?.end ?? sel?.duration ?? 0)}</span>
           </span>
+          {sel && (
+            <button
+              className="mark-start"
+              disabled={!voice}
+              title="Установить начало пэда в текущей позиции воспроизведения"
+              onClick={() => {
+                const live = engine().voices.get(sel.id);
+                if (!live) return;
+                const start = Math.floor(engine().position(live) * 1000) / 1000;
+                if (!Number.isFinite(start) || start < 0 || start >= live.end - 0.01)
+                  return notify('Слишком близко к концу трека');
+                setP((old) => ({
+                  ...old,
+                  banks: old.banks.map((b) => ({
+                    ...b,
+                    pads: b.pads.map((pad) => (pad?.id === sel.id ? { ...pad, start } : pad)),
+                  })),
+                }));
+                notify(`Начало пэда: ${start.toFixed(3)} с`);
+              }}
+            >
+              Начало отсюда
+            </button>
+          )}
           {sel && (
             <IconButton
               label="Редактировать выбранный трек"
@@ -1336,7 +1415,8 @@ export function App() {
           {error || message}
         </span>
         <span>
-          {engine().voices.size} активных · {allPads.length}/256 пэдов <b>ESC</b> Стоп всё
+          {engine().voices.size} активных · {allPads.length}/{PROJECT_CAPACITY} пэдов <b>ESC</b>{' '}
+          Стоп всё
         </span>
       </footer>
       {settings && (
@@ -1377,6 +1457,11 @@ export function App() {
                       ))}
                     </div>
                   </Field>
+                  <CustomGrid
+                    key={p.settings.grid.join('x')}
+                    grid={p.settings.grid}
+                    apply={(grid) => changeSettings({ grid })}
+                  />
                   <Toggle
                     label="Светлая тема"
                     value={p.settings.theme === 'light'}

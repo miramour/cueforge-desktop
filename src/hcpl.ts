@@ -48,7 +48,12 @@ export function fromHcpl(raw: unknown): Project {
     });
   return validateProject(p);
 }
+export function assertHcplCapacity(p: Project) {
+  if (p.banks.some((bank) => bank.pads.slice(32).some(Boolean)))
+    throw new Error('Формат HCPL поддерживает 32 пэда на банк. Для этого сета выберите .cueforge.');
+}
 export function toHcpl(p: Project) {
+  assertHcplCapacity(p);
   return {
     version: 2,
     savedAt: new Date().toISOString(),

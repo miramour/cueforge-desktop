@@ -8,6 +8,14 @@ export const COLORS = [
   '#d69de8',
   '#80cbd0',
 ];
+export const MAX_GRID_SIDE = 12;
+export const BANK_SIZE = MAX_GRID_SIDE ** 2;
+export const PROJECT_CAPACITY = BANK_SIZE * COLORS.length;
+export function validGridSize(value: unknown): value is number {
+  return (
+    typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= MAX_GRID_SIDE
+  );
+}
 export const GRIDS = [
   [4, 2],
   [4, 3],
@@ -92,7 +100,7 @@ export function freshProject(): Project {
     banks: COLORS.map((color, i) => ({
       name: String.fromCharCode(65 + i),
       color,
-      pads: Array(32).fill(null),
+      pads: Array(BANK_SIZE).fill(null),
     })),
     settings: {
       theme: 'dark',
@@ -163,7 +171,7 @@ export function validateProject(raw: unknown): Project {
     return {
       name: str(bank.name, p.banks[i].name, 60),
       color: color(bank.color, COLORS[i]),
-      pads: Array.from({ length: 32 }, (_, j) => {
+      pads: Array.from({ length: BANK_SIZE }, (_, j) => {
         const a = Array.isArray(bank.pads) ? bank.pads[j] : null;
         if (!a) return null;
         const q = obj(a);
@@ -216,18 +224,23 @@ export function validateProject(raw: unknown): Project {
   if (s.midiMode === 'pad') p.settings.midiMode = 'pad';
   if (['generic', 'launchpad', 'apc'].includes(s.midiProfile))
     p.settings.midiProfile = s.midiProfile;
-  if (Array.isArray(s.grid) && GRIDS.some((g) => g[0] === s.grid[0] && g[1] === s.grid[1]))
+  if (
+    Array.isArray(s.grid) &&
+    s.grid.length === 2 &&
+    validGridSize(s.grid[0]) &&
+    validGridSize(s.grid[1])
+  )
     p.settings.grid = [s.grid[0], s.grid[1]];
   const validTarget = (t: string) =>
-    /^(cell:\d{1,2}|pad:[\w-]+|bank:[0-7]|action:(play|pause|stop|panic|restart|loop|prevBank|nextBank|contents|volumeUp|volumeDown|mute|master|cue))$/.test(
+    /^(cell:\d{1,3}|pad:[\w-]+|bank:[0-7]|action:(play|pause|stop|panic|restart|loop|prevBank|nextBank|contents|volumeUp|volumeDown|mute|master|cue))$/.test(
       t,
     );
-  for (const [t, x] of Object.entries(obj(r.keys)).slice(0, 512)) {
+  for (const [t, x] of Object.entries(obj(r.keys)).slice(0, PROJECT_CAPACITY + BANK_SIZE + 32)) {
     const k = obj(x);
     if (validTarget(t) && typeof k.key === 'string' && k.key.length < 100 && k.key !== 'Escape')
       p.keys[t] = { key: k.key, scope: k.scope === 'global' ? 'global' : 'local' };
   }
-  for (const [t, x] of Object.entries(obj(r.midi)).slice(0, 1024)) {
+  for (const [t, x] of Object.entries(obj(r.midi)).slice(0, PROJECT_CAPACITY + BANK_SIZE + 32)) {
     const m = obj(x);
     if (validTarget(t) && (m.type === 'note' || m.type === 'cc'))
       p.midi[t] = {

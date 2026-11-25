@@ -22,7 +22,7 @@ import {
   readProject,
   wavHeader,
 } from './files';
-import { validateProject, type KeyBinding } from '../src/model';
+import { BANK_SIZE, PROJECT_CAPACITY, validateProject, type KeyBinding } from '../src/model';
 import { analyzeFile, exportClip, stopMediaJobs, prepareAudio } from './media';
 if (process.env.CUEFORGE_DATA) app.setPath('userData', path.resolve(process.env.CUEFORGE_DATA));
 const stateFile = path.join(app.getPath('userData'), 'session.json');
@@ -147,7 +147,8 @@ if (!owned) {
       return r.filePaths;
     });
     handle('authorize', (paths: unknown) => {
-      if (!Array.isArray(paths) || paths.length > 256) throw new Error('Слишком много файлов');
+      if (!Array.isArray(paths) || paths.length > PROJECT_CAPACITY)
+        throw new Error('Слишком много файлов');
       return paths.map((p) => authorize(audioPath(p)));
     });
     handle('open-project', async () => {
@@ -217,7 +218,7 @@ if (!owned) {
     handle('keys', (keys: Record<string, KeyBinding>) => {
       globalShortcut.unregisterAll();
       const errors: string[] = [];
-      for (const [target, b] of Object.entries(keys).slice(0, 512))
+      for (const [target, b] of Object.entries(keys).slice(0, PROJECT_CAPACITY + BANK_SIZE + 32))
         if (b.scope === 'global' && b.key !== 'Escape') {
           try {
             if (!globalShortcut.register(b.key, () => win.webContents.send('action', target)))

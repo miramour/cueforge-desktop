@@ -46,6 +46,10 @@ try {
   const meter = await page.locator('.output .meter span').first().getAttribute('style');
   assert(!meter.includes('width: 0%;'));
   check('Реальное воспроизведение: ненулевой измеренный уровень');
+  await page.getByRole('button', { name: 'Начало отсюда' }).click();
+  assert.equal(await page.locator('.pad.playing').count(), 1);
+  assert.match(await page.getByRole('status').innerText(), /Начало пэда: (?!0\.000)\d+\.\d{3} с/);
+  check('Метка начала из живой позиции без остановки');
   await page.getByRole('button', { name: 'Микс', exact: true }).click();
   await page.getByRole('button', { name: 'Пэд 2: Applause', exact: true }).click();
   await page.waitForFunction(() => document.querySelectorAll('.pad.playing').length === 2);
@@ -67,6 +71,7 @@ try {
   await page
     .getByRole('button', { name: 'Пэд 1: Opening', exact: true })
     .click({ button: 'right' });
+  assert(Number(await page.getByLabel('Начало, сек', { exact: true }).inputValue()) > 0);
   await page.getByLabel('Начало, сек', { exact: true }).fill('1');
   await page.getByLabel('Конец, сек', { exact: true }).fill('2.5');
   await page.getByLabel('Название звука', { exact: true }).fill('Opening trimmed');
@@ -135,6 +140,14 @@ try {
   check('Экспорт переносимого сета с аудиофайлами');
   await page.getByRole('button', { name: 'Настройки', exact: true }).click();
   await page.getByRole('button', { name: 'Интерфейс', exact: true }).click();
+  await page.getByLabel('Столбцы', { exact: true }).fill('7');
+  await page.getByLabel('Строки', { exact: true }).fill('5');
+  await page.getByRole('button', { name: 'Применить сетку' }).click();
+  assert.equal(await page.locator('.pad').count(), 35);
+  await page.waitForFunction(() =>
+    document.querySelector('.grid-controls')?.textContent?.includes('7 × 5'),
+  );
+  check('Пользовательская сетка 7×5, включая ячейки после 32-й');
   await page.getByRole('button', { name: '8 × 4', exact: true }).click();
   await page.getByRole('button', { name: 'Готово', exact: true }).click();
   assert.equal(await page.locator('.pad').count(), 32);

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { validateProject, type Project } from '../src/model';
-import { fromHcpl, toHcpl } from '../src/hcpl';
+import { fromHcpl, toHcpl, assertHcplCapacity } from '../src/hcpl';
 export const audioExtensions = new Set([
   '.mp3',
   '.wav',
@@ -32,7 +32,7 @@ export function atomicJson(file: string, value: unknown) {
 }
 export function readProject(file: string): Project {
   const stat = fs.statSync(file);
-  if (stat.size > 16 * 1024 * 1024) throw new Error('Файл сета слишком большой');
+  if (stat.size > 96 * 1024 * 1024) throw new Error('Файл сета слишком большой');
   const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
   const p = raw.format === 'cueforge' ? validateProject(raw) : fromHcpl(raw);
   for (const bank of p.banks)
@@ -44,6 +44,7 @@ export function exportSet(p: Project, file: string, portable: boolean) {
   const clean = validateProject(p);
   const directory = path.dirname(file);
   const mediaDir = path.join(directory, path.basename(file, path.extname(file)) + '-audio');
+  if (path.extname(file).toLowerCase() === '.hcpl') assertHcplCapacity(clean);
   const copies = new Map<string, string>();
   for (const bank of clean.banks)
     for (const pad of bank.pads)

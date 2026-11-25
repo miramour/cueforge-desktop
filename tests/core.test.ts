@@ -15,11 +15,25 @@ import {
   wavHeader,
 } from '../electron/files';
 describe('Сеты', () => {
-  it('хранит 256 независимых ячеек', () => {
+  it('хранит 144 независимые ячейки в каждом из восьми банков', () => {
     const p = freshProject();
-    expect(p.banks.flatMap((b) => b.pads)).toHaveLength(256);
+    expect(p.banks.flatMap((b) => b.pads)).toHaveLength(1152);
     p.banks[0].pads[0] = newPad('C:\\music\\a.wav');
     expect(p.banks[1].pads[0]).toBeNull();
+  });
+  it('сохраняет скрытый пэд, старт и назначение за 99-й ячейкой при смене размера', () => {
+    const p = freshProject();
+    p.settings.grid = [11, 10];
+    p.banks[0].pads[109] = { ...newPad('C:/audio/a.wav'), duration: 10, start: 2.45 };
+    p.keys['cell:109'] = { key: 'F8', scope: 'local' };
+    const loaded = validateProject(JSON.parse(JSON.stringify(p)));
+    expect(loaded.settings.grid).toEqual([11, 10]);
+    loaded.settings.grid = [2, 1];
+    const small = validateProject(loaded);
+    expect(small.banks[0].pads[109]?.start).toBe(2.45);
+    expect(small.keys['cell:109']).toEqual(p.keys['cell:109']);
+    expect(() => toHcpl(small)).toThrow(/32/);
+    expect(validateProject({ ...p, settings: { grid: [5, -1] } }).settings.grid).toEqual([4, 3]);
   });
   it('плейлист проходит через пустые ячейки и банки и заканчивается', () => {
     const p = freshProject();

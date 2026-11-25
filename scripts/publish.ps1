@@ -18,14 +18,16 @@ if (!$remote) {
   git push origin main
   if ($LASTEXITCODE -ne 0) { throw 'Не удалось отправить main. Force push не выполнялся.' }
 } else { throw "Неожиданный origin: $remote" }
-$exe = Join-Path $projectRoot 'release/CueForge-0.1.0-Windows-x64.exe'
+$version = (Get-Content -Raw -LiteralPath 'package.json' | ConvertFrom-Json).version
+$tag = "v$version"
+$exe = Join-Path $projectRoot "release/CueForge-$version-Windows-x64.exe"
 if (!(Test-Path -LiteralPath $exe)) { throw 'Исходники опубликованы. Для релиза сначала выполните npm run package.' }
 $assets = @($exe)
 foreach ($name in @('SHA256SUMS.txt','CueForge-demo.zip')) {
   $asset = Join-Path $projectRoot "release/$name"
   if (Test-Path -LiteralPath $asset) { $assets += $asset }
 }
-& $Gh release create 'v0.1.0' @assets --repo 'miramour/cueforge-desktop' --target main --title 'CueForge Desktop 0.1.0 (preview)' --notes-file (Join-Path $projectRoot 'docs/RELEASE_NOTES.md') --prerelease
+& $Gh release create $tag @assets --repo 'miramour/cueforge-desktop' --target main --title "CueForge Desktop $version" --notes-file (Join-Path $projectRoot 'docs/RELEASE_NOTES.md')
 if ($LASTEXITCODE -ne 0) { throw 'Исходники опубликованы, но релиз не создан. Существующий релиз не перезаписывался.' }
 & $Gh repo view 'miramour/cueforge-desktop' --json url,visibility
-& $Gh release view 'v0.1.0' --repo 'miramour/cueforge-desktop' --json url,assets
+& $Gh release view $tag --repo 'miramour/cueforge-desktop' --json url,assets
